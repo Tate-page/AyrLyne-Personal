@@ -1,0 +1,52 @@
+﻿@inherits LayoutComponentBase
+@inject NavigationManager navManager
+<PageTitle>AyrLyne-Personal</PageTitle>
+
+<div class="page">
+
+    <main>
+        <div class="top-row px-4">
+            <div class="navHeader col-6">
+                <h1>Ayrlyne</h1>
+            </div>
+            <div class=" col-6">
+                <div class="navLinks row">
+                    @if(!isHomePage()){
+                        <a id="navLink" class="col-2" @onclick="(() => OpenHomePage())">Home</a>
+                    }
+                    <a id="navLink" class="col-2" @onclick="(() => OpenSignIn())">Login</a>
+                    <!--<a id="navLink" class="col-2" @onclick="(() => OpenCreateAccount())">Create Account</a>-->
+                </div>
+            </div>
+            
+        </div>
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+@code{
+    private void OpenSignIn(){
+        navManager.NavigateTo("/SignIn");
+    }
+
+    private void OpenCreateAccount()
+    {
+        navManager.NavigateTo("/CreateAccount");
+    }
+
+    private void OpenHomePage(){
+        navManager.NavigateTo("/");
+    }
+
+    private bool isHomePage()
+    {
+        string[] strArr = navManager.Uri.Split("/");
+        if (strArr[3].Equals("")){
+            return true;
+        }
+        return false;
+    }
+}
