@@ -14,19 +14,28 @@
     <link href="AyrLyne-Personal.styles.css" rel="stylesheet" />
     <component type="typeof(HeadOutlet)" render-mode="ServerPrerendered" />
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script>
-        function onSignIn(googleUser) {
-            var profile = googleUser.getBasicProfile();
-            console.log('ID: ' + profile.getId()); // Do not send to your backend! Use an ID token instead.
-            console.log('Name: ' + profile.getName());
-            console.log('Image URL: ' + profile.getImageUrl());
-            console.log('Email: ' + profile.getEmail()); // This is null if the 'email' scope is not present.
-        }
-    </script>
 </head>
 <body>
     @RenderBody()
-
+    <script>
+        window.GoogleSignIn = () => {
+            google.accounts.id.initialize({
+                client_id: "364315521339-qrpqlg0r9qp82r1ve1l7gbstimipl9jt",
+                login_uri: "https://localhost:7096/AuthCallback/",
+                ux_mode: "redirect",
+                nonce: "duiobqrpgiqerfqeroib23"
+            });
+            google.accounts.id.renderButton(
+                document.getElementById("btnGoogleSignIn"),
+                {
+                    theme: 'filled_blue',
+                    size: 'large',
+                    type: 'standard'
+                }
+            );
+            return true;
+        };
+    </script>
     <div id="blazor-error-ui">
         <environment include="Staging,Production">
             An error has occurred. This application may no longer respond until reloaded.

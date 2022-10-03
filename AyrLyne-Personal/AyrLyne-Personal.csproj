@@ -9,8 +9,19 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Data\IGoogleSignInFormData.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Apis" Version="1.57.0" />
+    <PackageReference Include="Google.Apis.Auth" Version="1.57.0" />
+    <PackageReference Include="Microsoft.AspNet.WebApi.Core" Version="5.2.9" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="6.0.9" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.23.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AyrlyneAppLibrary\AyrlyneAppLibrary.csproj" />
   </ItemGroup>
 
 </Project>

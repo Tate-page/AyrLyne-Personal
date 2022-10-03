@@ -1,28 +1,23 @@
 ﻿@page "/SignIn"
 @attribute [Authorize]
 @using Microsoft.AspNetCore.Authorization
+@inject IJSRuntime JSRuntime;
 
 <h3>SignIn</h3>
 <div>
-    <div id="g_id_onload"
-         data-client_id="364315521339-qrpqlg0r9qp82r1ve1l7gbstimipl9jt"
-         data-login_uri="https://localhost:7096/"
-         >
-    </div>
-
-    <div class="g_id_signin"
-         data-type="standard"
-         data-size="large"
-         data-theme="outline"
-         data-text="signin_with"
-         data-shape="rectangular"
-         data-logo_alignment="left"
-         data-login_uri="https://localhost:7096/">
-        
-    </div>
+    <div id="btnGoogleSignIn"></div>
 </div>
     
 
 @code {
-    
+    private bool _isRendered = false;
+    protected override async Task OnAfterRenderAsync(bool firstRender){
+        if(firstRender){
+            _isRendered = true;
+            object[] args = new object[0];
+            await JSRuntime.InvokeVoidAsync("GoogleSignIn", args);
+        }
+    }
+
+
 }

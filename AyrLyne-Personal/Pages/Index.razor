@@ -1,8 +1,42 @@
 ﻿@page "/"
+@using AyrLyne_Personal.Controllers
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor _context
+@using AyrLyne_Personal.Models;
+@inject ISignInUser signedUser
+@using System.Security.Claims;
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@using AyrlyneAppLibrary.DataAccess;
+@using AyrlyneAppLibrary.Models;
+@inject AyrlyneAppLibrary.DataAccess.IStateData statesTable
 
 <PageTitle>Index</PageTitle>
 
 <h1>Search Flights</h1>
+@if(!isUserAuthenticated()){
+    <p>you are not authorized</p>
+}else{
+    <p>Welcome @str!</p>
+}
 <!--<EditForm>
     <InputText></InputText>
 </EditForm>-->
+<p>@str2</p>
+@code{
+    private string str = "";
+    private string str2 = "";
+    private StateModel states= new();
+    protected override void OnInitialized(){
+        var temp = statesTable.GetStates();
+        
+    }
+
+
+    private bool isUserAuthenticated(){
+        if(signedUser.isLoggedIn){
+            return true;
+        }
+        
+        return false;
+    }
+}

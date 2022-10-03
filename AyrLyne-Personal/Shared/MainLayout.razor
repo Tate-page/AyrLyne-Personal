@@ -1,21 +1,31 @@
-﻿@inherits LayoutComponentBase
+﻿@using AyrLyne_Personal.Controllers
+@using Microsoft.AspNetCore.Mvc
+@inherits LayoutComponentBase
 @inject NavigationManager navManager
+@inject IHttpContextAccessor _context
+@using AyrLyne_Personal.Models;
+@using System.Security.Claims
+@inject ISignInUser signedUser
 <PageTitle>AyrLyne-Personal</PageTitle>
 
 <div class="page">
 
     <main>
         <div class="top-row px-4">
-            <div class="navHeader col-6">
+            <div class="navHeader col-3">
                 <h1>Ayrlyne</h1>
             </div>
-            <div class=" col-6">
+            <div class=" col-9">
                 <div class="navLinks row">
                     @if(!isHomePage()){
                         <a id="navLink" class="col-2" @onclick="(() => OpenHomePage())">Home</a>
                     }
-                    <a id="navLink" class="col-2" @onclick="(() => OpenSignIn())">Login</a>
-                    <!--<a id="navLink" class="col-2" @onclick="(() => OpenCreateAccount())">Create Account</a>-->
+                    @if(!isUserLoggedIn()){
+                        <a id="navLink" class="col-2" @onclick="(() => OpenSignIn())">Log in</a>
+                    }else{
+                        <a id="navLink" class="col-2" @onclick="(() => SignOut())">Sign Out</a>
+                    }
+                    
                 </div>
             </div>
             
@@ -28,6 +38,7 @@
 </div>
 
 @code{
+
     private void OpenSignIn(){
         navManager.NavigateTo("/SignIn");
     }
@@ -41,6 +52,17 @@
         navManager.NavigateTo("/");
     }
 
+    private void SignOut(){
+        AuthCallbackController controller = new AuthCallbackController();
+        HttpContext tempContext = _context.HttpContext;
+        controller.SignOut(tempContext);
+        signedUser.signOut();
+        StateHasChanged();
+        navManager.NavigateTo("/", forceLoad: true);
+    }
+
+    
+
     private bool isHomePage()
     {
         string[] strArr = navManager.Uri.Split("/");
@@ -49,4 +71,12 @@
         }
         return false;
     }
+
+    private bool isUserLoggedIn(){
+        if (signedUser.isLoggedIn) {
+            return true;
+        }
+        return false;
+    }
+
 }

@@ -1,0 +1,87 @@
+﻿@page "/HandleSignIn"
+@using AyrLyne_Personal.Models;
+@inject ISignInUser signedUser
+@using AyrlyneAppLibrary.Models;
+@inject AyrlyneAppLibrary.DataAccess.IUserData userData;
+@using System.Security.Claims;
+@inject AuthenticationStateProvider _authenticationStateProvider
+@inject IHttpContextAccessor _context
+@inject NavigationManager navManager
+<h3>HandleSignIn</h3>
+@if (doesUserExistInDB && signedUser.isLoggedIn)
+{
+    <button @onclick="(() => OpenHomePage())">You are now logged @signedUser.Fname. Click here to return home!</button>
+}else{
+    <p>It seems that this is your first time logging in, please fill out this form to finalize you login</p>
+    <EditForm Model="@signInUserModel" OnValidSubmit="@HandleSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <p>First Name:</p>
+        <InputText id="Fname" CurrentValue="@tempUser.Fname" @bind-Value="signInUserModel.Fname"></InputText>
+
+        <p>Last Name:</p>
+        <InputText id="Lname" CurrentValue="@tempUser.Fname" @bind-Value="signInUserModel.Lname"></InputText>
+
+        <p>Home Airport:</p>
+        <InputText id="HomeAirport" @bind-Value="signInUserModel.HomeAirportID"></InputText>
+
+        <button type="submit">Sign In</button>
+    </EditForm>
+}
+
+@code {
+    private bool doesUserExistInDB = false;
+    private SignInUserModel signInUserModel = new();
+    private SignInUser tempUser = new SignInUser();
+    protected override async Task OnInitializedAsync()
+    {
+        if (!signedUser.isLoggedIn)
+        {//signedUser has not been updated to claims
+            var principal = await _authenticationStateProvider.GetAuthenticationStateAsync();
+
+
+
+
+            string tempName = _context.HttpContext.User.Claims.First(c => c.Type.Contains("name")).Value.ToString();
+            tempUser.Fname = tempName.Split(" ")[0];
+            tempUser.Lname = tempName.Split(" ")[1];
+            tempUser.Email = _context.HttpContext.User.Claims.First(c => c.Type.Contains("email")).Value.ToString();
+            tempUser.UserLevel = _context.HttpContext.User.Claims.First(c => c.Type.Contains("role")).Value.ToString();
+
+        }
+        else
+        {//signedUser has been updated to claims
+
+        }
+
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var temp = await userData.returnIfUserExistsAsync(tempUser.Email);
+        if(temp.Email == null){
+            doesUserExistInDB = false;
+        }else{
+            doesUserExistInDB = true;
+        }
+    }
+
+    private void HandleSubmit(){
+        string tempName = _context.HttpContext.User.Claims.First(c => c.Type.Contains("name")).Value.ToString();
+        UserModel user = new();
+        user.Fname = tempName.Split(" ")[0];
+        user.Lname = tempName.Split(" ")[1];
+        user.Email = _context.HttpContext.User.Claims.First(c => c.Type.Contains("email")).Value.ToString();
+        //update DB
+        UserModel model = userData.updateDB(user);
+        tempUser.UserID = model.UserID;
+        tempUser.HomeAirportID = model.HomeAirportID;
+        signedUser.signIn(tempUser);
+    }
+
+    private void OpenHomePage()
+    {
+        navManager.NavigateTo("/");
+    }
+}
