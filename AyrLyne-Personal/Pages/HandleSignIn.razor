@@ -1,12 +1,22 @@
 ﻿@page "/HandleSignIn"
+
 @using AyrLyne_Personal.Models;
-@inject ISignInUser signedUser
+@inject ISignInUser signedUser;
+
+
 @using AyrlyneAppLibrary.Models;
-@inject AyrlyneAppLibrary.DataAccess.IUserData userData;
+
+@using AyrlyneAppLibrary.DataAccess;
+@inject IUserData userData;
+@inject IRegionData regionData;
+@inject IStateData stateData;
+@inject IAirportData airportData;
+
 @using System.Security.Claims;
 @inject AuthenticationStateProvider _authenticationStateProvider
 @inject IHttpContextAccessor _context
 @inject NavigationManager navManager
+@inject IJSRuntime JSRuntime
 <h3>HandleSignIn</h3>
 @if (doesUserExistInDB && signedUser.isLoggedIn)
 {
@@ -18,13 +28,32 @@
         <ValidationSummary />
 
         <p>First Name:</p>
-        <InputText id="Fname" CurrentValue="@tempUser.Fname" @bind-Value="signInUserModel.Fname"></InputText>
+        <InputText id="Fname" CurrentValue="@Fname" @bind-Value="signInUserModel.Fname"></InputText>
 
         <p>Last Name:</p>
-        <InputText id="Lname" CurrentValue="@tempUser.Fname" @bind-Value="signInUserModel.Lname"></InputText>
+        <InputText id="Lname" CurrentValue="@Lname" @bind-Value="signInUserModel.Lname"></InputText>
 
         <p>Home Airport:</p>
-        <InputText id="HomeAirport" @bind-Value="signInUserModel.HomeAirportID"></InputText>
+        <select id="stateSelect" @onchange="@OnStateSelect">
+            <option value="0" selected>Choose State</option>
+            @foreach(StateModel state in stateData.GetStates() ){
+                <option value="@state.StateID">@state.StateAbrev</option>
+            }
+        </select>
+        <select name="regionSelect" id="regionSelect" @onchange="@OnRegionSelect" disabled="@isRegionDisabled">
+            <option value="0" selected>Choose Region</option>
+            @foreach (RegionModel region in regionData.GetRegions().Where(r => r.RegionStateID == stateValue))
+            {
+                <option value="@region.RegionID">@region.RegionName</option>
+            }
+        </select>
+        <InputSelect name="AirportSelect" id="AirportSelect" @bind-Value="signInUserModel.HomeAirportID" disabled="@isAirportDisabled">
+            <option value="0" selected>Choose Airport</option>
+            @foreach(AirportModel airport in airportData.GetAirports().Where(a => a.AirportRegionID == regionValue)){
+                <option value="@airport.AirportID">@airport.AirportName</option>
+            }
+        </InputSelect>
+
 
         <button type="submit">Sign In</button>
     </EditForm>
@@ -34,27 +63,34 @@
     private bool doesUserExistInDB = false;
     private SignInUserModel signInUserModel = new();
     private SignInUser tempUser = new SignInUser();
+    private int stateValue = 0;
+    private bool isRegionDisabled=true;
+    private int regionValue = 0;
+    private bool isAirportDisabled = true;
+    private string Fname="";
+    private string Lname = "";
+
     protected override async Task OnInitializedAsync()
     {
         if (!signedUser.isLoggedIn)
         {//signedUser has not been updated to claims
             var principal = await _authenticationStateProvider.GetAuthenticationStateAsync();
 
-
+            //List<AirportModel> tempList =await airportData.GetAirportsAsync();
+            //tempList = tempList.Where(a => a.AirportRegionID == 59).ToList();
 
 
             string tempName = _context.HttpContext.User.Claims.First(c => c.Type.Contains("name")).Value.ToString();
             tempUser.Fname = tempName.Split(" ")[0];
             tempUser.Lname = tempName.Split(" ")[1];
             tempUser.Email = _context.HttpContext.User.Claims.First(c => c.Type.Contains("email")).Value.ToString();
-            tempUser.UserLevel = _context.HttpContext.User.Claims.First(c => c.Type.Contains("role")).Value.ToString();
+
 
         }
         else
         {//signedUser has been updated to claims
 
         }
-
     }
 
     protected override async Task OnParametersSetAsync()
@@ -64,7 +100,42 @@
             doesUserExistInDB = false;
         }else{
             doesUserExistInDB = true;
+            SignInUser temporary = new SignInUser();
+            temporary.Fname = temp.Fname;
+            temporary.Lname = temp.Lname;
+            temporary.UserID = temp.UserID;
+            temporary.isAdmin = temp.isAdmin;
+            signedUser.signIn(temporary);
         }
+        Fname = tempUser.Fname;
+        Lname = tempUser.Lname;
+    }
+
+    private void OnStateSelect(ChangeEventArgs e){
+        stateValue = Int32.Parse(e.Value.ToString());
+        if(stateValue == 0){
+            isRegionDisabled = true;
+        }else{
+            isRegionDisabled = false;
+        }
+
+    }
+
+    private void OnRegionSelect(ChangeEventArgs e){
+        regionValue = Int32.Parse(e.Value.ToString());
+        if(regionValue == 0){
+            isAirportDisabled = true;
+        }else{
+            isAirportDisabled = false;
+        }
+
+    }
+
+    private string hasStateBeenSelected(){
+        if(stateValue != 0){
+            return "";
+        }
+        return "disabled";
     }
 
     private void HandleSubmit(){
@@ -73,11 +144,14 @@
         user.Fname = tempName.Split(" ")[0];
         user.Lname = tempName.Split(" ")[1];
         user.Email = _context.HttpContext.User.Claims.First(c => c.Type.Contains("email")).Value.ToString();
+        user.HomeAirportID = Int32.Parse( signInUserModel.HomeAirportID);
         //update DB
         UserModel model = userData.updateDB(user);
         tempUser.UserID = model.UserID;
         tempUser.HomeAirportID = model.HomeAirportID;
         signedUser.signIn(tempUser);
+        doesUserExistInDB = true;
+        StateHasChanged();
     }
 
     private void OpenHomePage()

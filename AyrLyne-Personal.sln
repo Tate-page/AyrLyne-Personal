@@ -8,7 +8,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AyrLyne-Personal", "AyrLyne
 		{6099799B-05E0-40B7-A141-945806DA99CC} = {6099799B-05E0-40B7-A141-945806DA99CC}
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AyrlyneAppLibrary", "AyrlyneAppLibrary\AyrlyneAppLibrary.csproj", "{6099799B-05E0-40B7-A141-945806DA99CC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AyrlyneAppLibrary", "AyrlyneAppLibrary\AyrlyneAppLibrary.csproj", "{6099799B-05E0-40B7-A141-945806DA99CC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

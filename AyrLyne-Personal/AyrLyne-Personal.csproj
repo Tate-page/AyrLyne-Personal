@@ -9,6 +9,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Javascript\**" />
+    <Content Remove="Javascript\**" />
+    <EmbeddedResource Remove="Javascript\**" />
+    <None Remove="Javascript\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Remove="Data\IGoogleSignInFormData.cs" />
   </ItemGroup>
 

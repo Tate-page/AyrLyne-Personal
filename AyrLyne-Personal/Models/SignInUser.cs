@@ -9,7 +9,8 @@ namespace AyrLyne_Personal.Models
         public string Fname { get; set; }
         public string Lname { get; set; }
         public string Email { get; set; }
-        public string UserLevel { get; set; }
+        public bool isAdmin { get; set; }
+        public int AirlineID { get; set; }
 
         public int UserID { get; set; }
         public bool isLoggedIn { get; set; }
@@ -21,7 +22,7 @@ namespace AyrLyne_Personal.Models
             this.Fname = "";
             this.Lname = "";
             this.Email = "";
-            this.UserLevel = "customer";
+            this.isAdmin = false;
             this.isLoggedIn = false;
         }
         public SignInUser(string fname, string lname, string email)
@@ -29,16 +30,17 @@ namespace AyrLyne_Personal.Models
             this.Fname = fname;
             this.Lname = lname;
             this.Email = email;
-            this.UserLevel = "customer";
+            this.isAdmin = false;
             this.isLoggedIn = isLoggedIn;
         }
 
         public void signIn(SignInUser user)
         {
+            this.UserID = user.UserID;
             this.Fname = user.Fname;
             this.Lname = user.Lname;
             this.Email = user.Email;
-            this.UserLevel = user.UserLevel;
+            this.isAdmin = user.isAdmin;
             this.isLoggedIn = true;
         }
 
@@ -47,7 +49,7 @@ namespace AyrLyne_Personal.Models
             this.Fname = "";
             this.Lname = "";
             this.Email = "";
-            this.UserLevel = "";
+            this.isAdmin = false;
             this.isLoggedIn = false;
         }
 

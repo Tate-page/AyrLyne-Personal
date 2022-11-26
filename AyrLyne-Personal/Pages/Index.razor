@@ -9,15 +9,18 @@
 @using AyrlyneAppLibrary.DataAccess;
 @using AyrlyneAppLibrary.Models;
 @inject AyrlyneAppLibrary.DataAccess.IStateData statesTable
+@inject IJSRuntime JSRuntime;
 
 <PageTitle>Index</PageTitle>
 
 <h1>Search Flights</h1>
+
 @if(!isUserAuthenticated()){
     <p>you are not authorized</p>
 }else{
-    <p>Welcome @str!</p>
+    <p>Welcome @signedUser.Fname!</p>
 }
+
 <!--<EditForm>
     <InputText></InputText>
 </EditForm>-->
@@ -39,4 +42,6 @@
         
         return false;
     }
+
+
 }

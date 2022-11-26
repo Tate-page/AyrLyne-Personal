@@ -1,0 +1,113 @@
+﻿@page "/AirportOverview"
+@inject IJSRuntime JSRuntime
+@using AyrlyneAppLibrary.DataAccess;
+@using AyrlyneAppLibrary.Models;
+@inject AyrlyneAppLibrary.DataAccess.IAirportData AirportTable
+@inject AyrlyneAppLibrary.DataAccess.IAirportConnectionData AirportConnectionTable
+
+<h3>AirportOverview</h3>
+<div id="OverviewMap" style="height:500px;width:100%;"></div>
+@if(!haveConnectionsBeenCreated){
+    <button @onclick="(() => CreateLargeAirportConnections())">Create Connections</button>
+}
+<!---->
+
+@code {
+    private List<AirportModel> Airports = new();
+    private List<AirportModel> LargeAirports = new();
+    private List<AirportModel> MediumAirports = new();
+    private bool haveConnectionsBeenCreated = false;
+    private List<AirportConnectionModel> AirportConnections = new();
+    private List<AirportConnectionModel> LtoLAirportConnections = new();
+    private bool haveMarkersBeenAdded = false;
+    private bool isAirport1Selected = true;
+    private AirportModel selectedAirport1 = new();
+    private AirportModel selectedAirport2 = new();
+
+    protected override async Task OnInitializedAsync(){
+
+        Airports = await AirportTable.GetAirportsAsync();
+        LargeAirports = Airports.Where(a => a.AirportType == "large_airport").ToList();
+        MediumAirports = Airports.Where(a => a.AirportType == "medium_airport").ToList();
+        AirportConnections = await AirportConnectionTable.GetAllAirportConnectionsAsync();
+        if(AirportConnections.Count > 0){
+            haveConnectionsBeenCreated = true;
+            foreach(AirportConnectionModel acm in AirportConnections){
+                acm.Airport1 = Airports.FirstOrDefault(a1 => a1.AirportID == acm.AirportID1);
+                acm.Airport2 = Airports.FirstOrDefault(a2 => a2.AirportID == acm.AirportID2);
+            }
+        }else{
+            
+            await CreateLargeAirportConnections();
+            
+
+            if(MediumAirports.Count == 0){
+                //TODO
+            }
+        }
+        string temp = typeof(AirportOverview).Assembly.GetName().FullName;
+        Console.WriteLine("hi");
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            //input 1 array of nodes
+            //nodes contain lat long
+            //color to show if it is large or medium
+            //input 1 array of edges
+            await JSRuntime.InvokeVoidAsync("initOverviewMap", null);
+            await RenderAirportPins();
+            await RenderAirportConnections();
+
+        }
+
+    }
+
+    public async Task RenderAirportPins(){
+        foreach (AirportModel port in LargeAirports)
+        {
+            object data = await JSRuntime.InvokeAsync<AirportModel>("eval", port);
+            await JSRuntime.InvokeVoidAsync("initOverviewLargeAirports", data);
+        }
+        foreach(AirportModel port in MediumAirports){
+            object data = await JSRuntime.InvokeAsync<AirportModel>("eval", port);
+            await JSRuntime.InvokeVoidAsync("initOverviewMediumAirports", data);
+        }
+    }
+
+    public async Task CreateLargeAirportConnections()
+    {
+        //get list of all airports
+        foreach(AirportModel port in LargeAirports){
+            List<AirportConnectionModel> immediateConnection = AirportConnections.Where(ac => ac.AirportID1 == port.AirportID).ToList();
+            foreach(AirportModel port2 in LargeAirports){
+                if(!immediateConnection.Any(ac => ac.AirportID2 == port2.AirportID) && port.AirportID != port2.AirportID){
+                    await AirportConnectionTable.CreateAirportConnectionAsync(Int32.Parse(port.AirportID.ToString()), Int32.Parse(port2.AirportID.ToString()));
+                }
+            }
+        }
+        AirportConnections = await AirportConnectionTable.GetAllAirportConnectionsAsync();
+        foreach (AirportConnectionModel acm in AirportConnections)
+        {
+            acm.Airport1 = Airports.FirstOrDefault(a1 => a1.AirportID == acm.AirportID1);
+            acm.Airport2 = Airports.FirstOrDefault(a2 => a2.AirportID == acm.AirportID2);
+        }
+        RenderAirportConnections();
+        haveConnectionsBeenCreated = true;
+    }
+
+    public async Task RenderAirportConnections(){
+        foreach(AirportConnectionModel conn in AirportConnections){
+            object data = await JSRuntime.InvokeAsync<AirportConnectionModel>("eval", conn);
+            await JSRuntime.InvokeVoidAsync("initAirportConnections", data);//TODO
+        }
+        
+    }
+
+    [JSInvokable("updateSelectedAirport")]
+    public static async Task UpdateSelectedAirport(string airportid){
+        Console.WriteLine(airportid);
+    }
+}

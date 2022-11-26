@@ -25,9 +25,17 @@ namespace AyrlyneAppLibrary.DataAccess
                 {
                     @tempEmail = email
                 });
-            UserModel model = temp.FirstOrDefault();
-            if (model != null)
+            if (temp != null)
             {
+                var tempItem = temp.FirstOrDefault();
+                UserModel model = new UserModel();
+                model.UserID = tempItem.UserID;
+                model.Fname = tempItem.Fname;
+                model.Lname = tempItem.Lname;
+                model.Email = tempItem.Email;
+                model.HomeAirportID = tempItem.HomeAirportID;
+                model.UserAirlineID = tempItem?.UserAirlineID;
+                model.isAdmin = ((tempItem?.isAdmin)%2 == 0 ? true : false);
                 return model;
             }
             else
@@ -38,15 +46,15 @@ namespace AyrlyneAppLibrary.DataAccess
 
         public UserModel returnIfUserExists(string email)
         {
-            UserModel temp =  (UserModel)_connection.Query<UserModel>(
+            var temp =  _connection.Query<UserModel>(
                 "Call ReturnUserIfEmailExists(@tempEmail)",
                 new
                 {
                     @tempEmail = email
                 });
-            if(temp != null)
+            if(temp != null && temp.Count() != 0)
             {
-                return temp;
+                return (UserModel)temp;
             }
             else
             {
@@ -82,19 +90,19 @@ namespace AyrlyneAppLibrary.DataAccess
         public UserModel updateDB(UserModel model)
         {
             UserModel tempUser = this.returnIfUserExists(model.Email);
-            if (tempUser == null)
+            if (tempUser.UserID == 0)
             {
-                var temp = (UserModel)_connection.Query<UserModel>(
-                "Call CreateAndReturnUser(@tempEmail)",
+                var temp = _connection.Query<UserModel>(
+                "Call CreateAndReturnUser(@tempFname, @tempLname, @tempEmail, @tempHomeAirportID, @tempIsAdmin)",
                 new
                 {
                     @tempFname = model.Fname,
                     @tempLname = model.Lname,
                     @tempEmail = model.Email,
                     @tempHomeAirportID = model.HomeAirportID,
-                    @tempIsAdmin = 1
+                    @tempIsAdmin = false
                 });
-                return temp;
+                return (UserModel)temp;
             }
             else
             {

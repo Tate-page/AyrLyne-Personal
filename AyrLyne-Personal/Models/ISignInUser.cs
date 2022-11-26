@@ -7,7 +7,9 @@ namespace AyrLyne_Personal.Models
         string Fname { get; set; }
         string Lname { get; set; }
         string Email { get; set; }
-        string UserLevel { get; set; }
+        bool isAdmin { get; set; }
+
+        int AirlineID { get; set; }
         int UserID { get; set; }
         bool isLoggedIn { get; set; }
         int HomeAirportID { get; set; }

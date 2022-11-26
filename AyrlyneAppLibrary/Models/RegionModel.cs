@@ -6,11 +6,12 @@ using System.Threading.Tasks;
 
 namespace AyrlyneAppLibrary.Models
 {
-    public class StateModel
+    public class RegionModel
     {
-        public int StateID { get; set; }
-        public string StateAbrev { get; set; }
+        public int RegionID { get; set; }
 
-        public string StateName { get; set; }
+        public string RegionName { get; set; }  
+
+        public int RegionStateID { get; set; }
     }
 }

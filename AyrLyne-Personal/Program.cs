@@ -24,8 +24,11 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddScoped<ISignInUser, SignInUser>();
 
 builder.Services.AddSingleton<IDbConnection, DbConnection>();
+builder.Services.AddSingleton<IRegionData, MySQLRegionData>();
 builder.Services.AddSingleton<IStateData, MySQLStateData>();
 builder.Services.AddSingleton<IUserData, MySQLUserData>();
+builder.Services.AddSingleton<IAirportData, MySQLAirportData>();
+builder.Services.AddSingleton<IAirportConnectionData, MySQLAirportConnectionData>();
 
 builder.Services.AddHttpContextAccessor();
 

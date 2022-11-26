@@ -21,7 +21,7 @@ namespace AyrlyneAppLibrary.DataAccess
         {
             return (List<StateModel>)await _connection.QueryAsync<StateModel>(
                 "Call GetStates()",
-                new List<StateModel>());
+                new());
         }
 
         public List<StateModel> GetStates()
