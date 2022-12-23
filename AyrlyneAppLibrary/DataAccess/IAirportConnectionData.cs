@@ -8,5 +8,9 @@ namespace AyrlyneAppLibrary.DataAccess
         Task CreateAirportConnectionAsync(int temp1, int temp2);
         List<AirportConnectionModel> GetAllAirportConnections();
         Task<List<AirportConnectionModel>> GetAllAirportConnectionsAsync();
+
+        List<AirportConnectionModel> GetAllAirportConnectionsByAirportID(int id);
+
+        Task<List<AirportConnectionModel>> GetAllAirportConnectionsByAirportIDAsync(int id);
     }
 }

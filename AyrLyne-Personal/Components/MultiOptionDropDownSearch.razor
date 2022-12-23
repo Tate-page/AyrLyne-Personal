@@ -1,0 +1,128 @@
+﻿@using AyrLyne_Personal.Components.CompenentModels
+<style>
+    .invisibleDropDownPrompt{
+        display: none;
+        overflow: hidden;
+        position: absolute;
+    }
+
+    .visibleDropDownPrompt {
+        display: block;
+        width: 200px;
+        max-height: 6rem;
+        overflow: hidden;
+        position: absolute;
+        background-color: white;
+        border-style: ridge;
+        overflow-y: auto
+    }
+
+    .DropDownOption{
+        display: flex;
+        width: 200px;
+        height: 1.2rem;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+
+    .selectedItems{
+        display: flex;
+        width: 300px;
+        min-height: 3.6rem;
+        border-style: inset;
+        padding: 5px;
+        flex-wrap: wrap;
+    }
+
+    .selectedItem{
+        max-width: 90px;
+        max-height: 1.5rem;
+        display: flex;
+        border-style: outset;
+        align-items: center;
+        margin: 2px;
+    }
+
+    .selectedItem p{
+        margin: 0;
+    }
+</style>
+
+<input @bind="@inputValue" runat="server" @onkeyup="@((e) => filterSearch(e))"/>
+<div class="@GetPromptClass()">
+    @foreach (DropDownDataModel dddm in filteredDropDrownModels)
+    {
+        <div class="DropDownOption" @onclick="(() => AddItem(dddm))">
+            @if(dddm.attribute2 == null){
+                <p>@dddm.attribute1</p>
+            }else{
+                <p>@dddm.attribute2  </p>
+                <p> | </p>
+                <p>@dddm.attribute1</p>
+            }
+            
+        </div>
+    }
+</div>
+<div class="selectedItems">
+    @foreach(DropDownDataModel dddm in selectedDropDownModels){
+        <div class="selectedItem">
+            <p @onclick="(() => RemoveItem(dddm))">x</p>
+            @if(dddm.attribute2 == null){
+                <p>@dddm.attribute1</p>
+            }else{
+                <p>@dddm.attribute2</p>
+            }
+            
+        </div>
+    }
+</div>
+
+
+
+
+@code {
+    //MultiOptionDropDownSearch
+    [Parameter]
+    public List<DropDownDataModel> dropDownDataModels { get; set; }
+
+    public List<DropDownDataModel> filteredDropDrownModels = new();
+
+    [Parameter]
+    public List<DropDownDataModel> selectedDropDownModels { get; set; }
+
+    public string inputValue = "";
+
+    public async Task filterSearch(KeyboardEventArgs e){
+        if(e.Code == "Enter" || e.Code == "NumpadEnter"){
+            if (inputValue == "")
+            {
+                filteredDropDrownModels = new();
+            }
+            else
+            {
+
+                filteredDropDrownModels = dropDownDataModels.Where(dddm => (dddm.attribute1.Contains(inputValue) || ((dddm.attribute2 == null) || (dddm.attribute2.Contains(inputValue)))) && !selectedDropDownModels.Contains(dddm)).ToList();
+            }
+        }        
+    }
+
+    public string GetPromptClass(){
+        if(inputValue == "" || inputValue == null){
+            return "invisibleDropDownPrompt";
+        }
+        return "visibleDropDownPrompt";
+    }
+
+    public async Task AddItem(DropDownDataModel dddm){
+        inputValue = "";
+        selectedDropDownModels.Add(dddm);
+        dropDownDataModels.Remove(dddm);
+    }
+
+    public async Task RemoveItem(DropDownDataModel dddm){
+        selectedDropDownModels.Remove(dddm);
+    }
+    
+}

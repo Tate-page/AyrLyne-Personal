@@ -80,3 +80,20 @@ a, .btn-link {
     padding-right: 2rem;
     margin: 0;
 }
+
+.selectedAirportFilter {
+    font-weight: bold;
+}
+
+.nonSelectedAirportFilter{
+
+}
+
+.visibleDiv{
+    
+    display: block;
+}
+
+.invisibleDiv{
+    display: none;
+}

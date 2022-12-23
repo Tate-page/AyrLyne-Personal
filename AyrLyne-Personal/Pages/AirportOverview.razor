@@ -4,32 +4,171 @@
 @using AyrlyneAppLibrary.Models;
 @inject AyrlyneAppLibrary.DataAccess.IAirportData AirportTable
 @inject AyrlyneAppLibrary.DataAccess.IAirportConnectionData AirportConnectionTable
+@inject AyrlyneAppLibrary.DataAccess.IStateData StateTable
+@using AyrLyne_Personal.Models
+@using AyrLyne_Personal.Components
+@using AyrLyne_Personal.Components.CompenentModels
 
 <h3>AirportOverview</h3>
-<div id="OverviewMap" style="height:500px;width:100%;"></div>
-@if(!haveConnectionsBeenCreated){
-    <button @onclick="(() => CreateLargeAirportConnections())">Create Connections</button>
-}
+<div>
+    <div class="d-flex">
+        <div id="OverviewMap" style="height:600px;width:900px;"></div>
+        
+        <div id="AirportOverviewToggleDiv">
+            <h4>Filter Map: </h4>
+            <div id="AirportOverviewToggleDiv">
+                <h5>Airports</h5>
+                <div class="@GetSelectedAirportFilter("All")" @onclick='(() => OnAirportFilterClick("All"))'>All</div>
+                <div class="@GetSelectedAirportFilter("Individual")" @onclick='(() => OnAirportFilterClick("Individual"))'>Add Individual Airports</div>
+                <div class='@GetSelectedDropDownFilter("Airport", "Individual")'>
+                    <MultiOptionDropDownSearch dropDownDataModels="dddmIndividualAirportFilter" selectedDropDownModels="selectIndividualdddmAirportFilter" ></MultiOptionDropDownSearch>
+                </div>
+                
+                <div class="@GetSelectedAirportFilter("ByGroup")" @onclick='(() => OnAirportFilterClick("ByGroup"))'>By Group</div>
+                <div class='@GetSelectedDropDownFilter("Airport", "ByGroup")'>
+                    <div style="display: flex;">
+                        <input type="checkbox" value="false" @bind="isAirportByStateChecked" />
+                        @if (isAirportByStateChecked)
+                        {
+                            <MultiOptionDropDownSearch dropDownDataModels="dddmStates" selectedDropDownModels="selectedddmStates" ></MultiOptionDropDownSearch>
+                        }
+                        else
+                        {
+                            <p>By State</p>
+                        }
+                    </div>
+                    
+                    <div style="display: flex;">
+                        <input type="checkbox" value="false" @bind="isAirportBySizeChecked" style="display: flex;" />
+                        @if (isAirportBySizeChecked)
+                        {
+                            <MultiOptionDropDownSearch dropDownDataModels="dddmAirportSizes" selectedDropDownModels="selectedddmAirportSizes" ></MultiOptionDropDownSearch>
+                        }
+                        else
+                        {
+                            <p>By Airport Size</p>
+                        }
+                    </div>
+                </div>
+                    
+                <div class="@GetSelectedAirportFilter("None")" @onclick='(() => OnAirportFilterClick("None"))'>None</div>
+                <button type="button" @onclick="(() => ApplyAirportFilters())">Apply Filter(s)</button>
+            </div>
+            <hr />
+            <div id="AirportOverviewToggleDiv">
+                <h5>Airport Connections</h5>
+                <div class="@GetSelectedAirportConnectionFilter("All")" @onclick='(() => OnAirportConnectionFilterClick("All"))'>All</div>
+                <div class="@GetSelectedAirportConnectionFilter("Individual")" @onclick='(() => OnAirportConnectionFilterClick("Individual"))'>Add Individual Airports</div>
+                <div class="@GetSelectedDropDownFilter("AirportConnection", "Individual")">
+                </div>
+                <div class="@GetSelectedAirportConnectionFilter("ByGroup")" @onclick='(() => OnAirportConnectionFilterClick("ByGroup"))'>By Group</div>
+                <div class="@GetSelectedDropDownFilter("AirportConnection", "ByGroup")">
+                </div>
+                <div class="@GetSelectedAirportConnectionFilter("None")" @onclick='(() => OnAirportConnectionFilterClick("None"))'>None</div>
+                <button type="button" @onclick="(() => ApplyAirportConnectionFilters())">Apply Filter(s)</button>
+            </div>
+            
+        </div>
+    </div>
+    
+    @if (isMapLoading)
+    {
+        <p>LOADING...</p>
+    }
+    @if (!haveConnectionsBeenCreated)
+    {
+        <button @onclick="(() => CreateLargeAirportConnections())">Create Connections</button>
+    }
+    <div class="AirportOverviewSelectedItemsDiv">
+        <div class="SelectedAirportDiv"></div>
+        <div class="SelectedAirportConnection"></div>
+        <div class="SelectedAirportDiv"></div>
+    </div>
+</div>
+
+
 <!---->
 
 @code {
     private List<AirportModel> Airports = new();
     private List<AirportModel> LargeAirports = new();
     private List<AirportModel> MediumAirports = new();
+    private List<AirportModel> SelectedAirports = new();
     private bool haveConnectionsBeenCreated = false;
     private List<AirportConnectionModel> AirportConnections = new();
     private List<AirportConnectionModel> LtoLAirportConnections = new();
-    private bool haveMarkersBeenAdded = false;
-    private bool isAirport1Selected = true;
-    private AirportModel selectedAirport1 = new();
-    private AirportModel selectedAirport2 = new();
+    private List<AirportConnectionModel> SelectedAirportConnections = new();
 
+    private bool isMapLoading = true;
+
+    private string airportFilter = "All";
+    private string airportConnectionFilter = "None";
+
+    private List<DropDownDataModel> dddmIndividualAirportFilter = new();
+    private List<DropDownDataModel> selectIndividualdddmAirportFilter = new();
+
+    private bool isAirportByStateChecked;
+    private List<StateModel> States = null;
+    private List<DropDownDataModel> dddmStates = new();
+    private List<DropDownDataModel> selectedddmStates = new();
+
+    private bool isAirportBySizeChecked;
+    private List<DropDownDataModel> dddmAirportSizes = new();
+    private List<DropDownDataModel> selectedddmAirportSizes = new();
+
+    private List<DropDownDataModel> selectedddmAirportsForAirportConnections = new();
+
+
+
+
+
+    //[Parameter]
+    //public EventCallback<List<DropDownDataModel>> AirportIndividualfilterSearch { get; set; }
+
+
+    #region overrides
     protected override async Task OnInitializedAsync(){
+        //ADD states dddm and AirportSize dddm
+        States = await StateTable.GetStatesAsync();
+        foreach(StateModel state in States){
+            DropDownDataModel dddm = new() { id = state.StateID, attribute1 = state.StateName, attribute2 = state.StateAbrev };
+            dddmStates.Add(dddm);
+        }
+
+        //add airport Sizes
+        DropDownDataModel dddmLrg = new() { id = 0, attribute1 = "large_airport" };
+        DropDownDataModel dddmMed = new() { id = 1, attribute1 = "medium_airport" };
+        dddmAirportSizes.Add(dddmLrg);
+        dddmAirportSizes.Add(dddmMed);
+
+
+
 
         Airports = await AirportTable.GetAirportsAsync();
+        foreach(AirportModel port in Airports){
+            DropDownDataModel dddm = new DropDownDataModel{
+                id = port.AirportID,
+                attribute1 = port.AirportName,
+                attribute2 = port.AirportCode
+            };
+            dddmIndividualAirportFilter.Add(dddm);
+
+            //!!!!!!!!!!!!!!!!!This should be added in the class library
+            port.Connections = await AirportConnectionTable.GetAllAirportConnectionsByAirportIDAsync(port.AirportID);
+        }
+        if(airportFilter == "All"){
+            SelectedAirports = Airports;
+        }else if(airportFilter == "None"){
+            SelectedAirports = new();
+        }
+
         LargeAirports = Airports.Where(a => a.AirportType == "large_airport").ToList();
         MediumAirports = Airports.Where(a => a.AirportType == "medium_airport").ToList();
+
+        //AirportConnections are being rendered twice
+        //the database has each path ATL->LAX, and LAX->ATL the 
         AirportConnections = await AirportConnectionTable.GetAllAirportConnectionsAsync();
+
         if(AirportConnections.Count > 0){
             haveConnectionsBeenCreated = true;
             foreach(AirportConnectionModel acm in AirportConnections){
@@ -37,16 +176,24 @@
                 acm.Airport2 = Airports.FirstOrDefault(a2 => a2.AirportID == acm.AirportID2);
             }
         }else{
-            
+            //get selected AirportConnections based on 
             await CreateLargeAirportConnections();
-            
+
 
             if(MediumAirports.Count == 0){
                 //TODO
             }
         }
+
+        if (airportConnectionFilter == "All")
+        {
+            SelectedAirportConnections = AirportConnections;
+        }
+        else if (airportConnectionFilter == "None")
+        {
+            SelectedAirportConnections = new();
+        }
         string temp = typeof(AirportOverview).Assembly.GetName().FullName;
-        Console.WriteLine("hi");
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -57,33 +204,199 @@
             //nodes contain lat long
             //color to show if it is large or medium
             //input 1 array of edges
+
+
             await JSRuntime.InvokeVoidAsync("initOverviewMap", null);
-            await RenderAirportPins();
-            await RenderAirportConnections();
+            await initAllMapMarkersAndLines();
+            await RenderSelectedAirportPins();
+            await RenderSelectedAirportConnections();
+            isMapLoading = false;
+            StateHasChanged();
 
         }
 
     }
 
-    public async Task RenderAirportPins(){
-        foreach (AirportModel port in LargeAirports)
+    #endregion
+
+    #region filters
+    public async Task ApplyAirportFilters(){
+        isMapLoading = true;
+        List<AirportModel> portsForRemoval = new();
+        List<AirportModel> portsForRendering = new();
+        List<AirportModel> alreadyRenderedAirports = new();
+        if(airportFilter == "All"){
+            foreach(AirportModel port in Airports){
+                //no ports to remove
+                if(SelectedAirports.Exists(ap => ap.AirportID == port.AirportID)){
+                    //ports that are rendered and will be rendered
+                    alreadyRenderedAirports.Add(port);
+                }else{
+                    portsForRendering.Add(port);
+                }
+            }
+        }
+        else if (airportFilter == "ByGroup") {
+            List<AirportModel> tempSelectedAirports = new();//to hold all airports that will be rendered including the ones that already are
+            foreach(AirportModel port in Airports){
+                bool IsAirportByStateCheckedIsCheckedAndInSelectedStatesOrNotSelected = false;
+                bool IsAirportBySizeCheckedIsCheckedAndInSelectedStatesOrNotSelected = false;
+
+                //AirportRegionID needs to be updated in db
+                if (isAirportByStateChecked && selectedddmStates.Exists(ap => ap.id == port.AirportRegionID))
+                {
+                    IsAirportByStateCheckedIsCheckedAndInSelectedStatesOrNotSelected = true;
+                }else if(!isAirportByStateChecked){
+                    IsAirportByStateCheckedIsCheckedAndInSelectedStatesOrNotSelected = true;
+                }
+
+                if (isAirportBySizeChecked){
+                    if (selectedddmAirportSizes.Count == 2){
+                        IsAirportBySizeCheckedIsCheckedAndInSelectedStatesOrNotSelected = true;
+                    }
+                    else if (port.AirportType == "large_airport" && selectedddmAirportSizes.Exists(dddm => dddm.id == 0)){
+                        IsAirportBySizeCheckedIsCheckedAndInSelectedStatesOrNotSelected = true;
+                    }
+                    else if (port.AirportType == "medium_airport" && selectedddmAirportSizes.Exists(dddm => dddm.id == 1))
+                    {
+                        IsAirportBySizeCheckedIsCheckedAndInSelectedStatesOrNotSelected = true;
+                    }
+                }else{
+                    IsAirportBySizeCheckedIsCheckedAndInSelectedStatesOrNotSelected = true;
+                }
+
+                if (IsAirportByStateCheckedIsCheckedAndInSelectedStatesOrNotSelected && IsAirportBySizeCheckedIsCheckedAndInSelectedStatesOrNotSelected){
+                    if(SelectedAirports.Exists(ap => ap.AirportID == port.AirportID)){
+                        alreadyRenderedAirports.Add(port);
+                    }else{
+                        portsForRendering.Add(port);
+                    }
+                }else{
+                    if (SelectedAirports.Exists(ap => ap.AirportID == port.AirportID))
+                    {
+                        portsForRemoval.Add(port);
+                    }
+                }
+            }
+        }
+        else if (airportFilter == "Individual") {
+            foreach (AirportModel model in SelectedAirports)
+            {
+                int temp = selectIndividualdddmAirportFilter.Where(dddm => dddm.id == model.AirportID).ToList().Count;
+                if (temp != 0)
+                {
+                    //if selected Airport Will continue to be rendered
+                    alreadyRenderedAirports.Add(model);
+                }
+                else
+                {
+                    //get all airports to remove
+                    portsForRemoval.Add(model);
+                    await JSRuntime.InvokeVoidAsync("unRenderMarkerInOverviewMapByID", model.AirportID);
+                }
+            }
+            foreach (DropDownDataModel dddm in selectIndividualdddmAirportFilter)
+            {
+                if (alreadyRenderedAirports.Where(am => am.AirportID == dddm.id).ToList().Count == 0 && portsForRemoval.Where(am => am.AirportID == dddm.id).ToList().Count == 0)
+                {
+                    //get airports that havent been render that need to be
+                    portsForRendering.Add(Airports.Where(am => am.AirportID == dddm.id).FirstOrDefault());
+
+                }
+            }
+        }else if(airportFilter == "None"){
+            portsForRemoval = SelectedAirports;
+        }
+
+        //remove pins
+        foreach(AirportModel port in portsForRemoval){
+            await JSRuntime.InvokeVoidAsync("unRenderMarkerInOverviewMapByID", port.AirportID);
+        }
+        //render pens that need to be
+        foreach(AirportModel port in portsForRendering){
+            await JSRuntime.InvokeVoidAsync("renderMarkerInOverviewMapByID", port.AirportID);
+        }
+        //concat remaining lists
+        SelectedAirports = portsForRendering.Concat(alreadyRenderedAirports).ToList();
+
+        isMapLoading = false;
+    }
+
+    public async Task ApplyAirportConnectionFilters(){
+        isMapLoading = true;
+
+        List<AirportConnectionModel> connectionsForRemoval = new();
+        List<AirportConnectionModel> connectionsForRendering = new();
+        List<AirportConnectionModel> alreadyRenderedConnections = new();
+        if (airportConnectionFilter == "All")
         {
-            object data = await JSRuntime.InvokeAsync<AirportModel>("eval", port);
-            await JSRuntime.InvokeVoidAsync("initOverviewLargeAirports", data);
+            foreach (AirportConnectionModel conn in AirportConnections)
+            {
+                if (SelectedAirportConnections.Exists(ap => ap.AirportConnectionID == conn.AirportConnectionID))
+                {
+                    alreadyRenderedConnections.Add(conn);
+                }
+                else
+                {
+                    connectionsForRendering.Add(conn);
+                }
+            }
         }
-        foreach(AirportModel port in MediumAirports){
-            object data = await JSRuntime.InvokeAsync<AirportModel>("eval", port);
-            await JSRuntime.InvokeVoidAsync("initOverviewMediumAirports", data);
+        else if (airportConnectionFilter == "ByGroup")
+        {
+
         }
+        else if (airportConnectionFilter == "Individual")
+        {
+            
+            
+        }
+        else if (airportConnectionFilter == "None")
+        {
+            connectionsForRemoval = SelectedAirportConnections;
+        }
+
+    
+        //remove lines
+        foreach (AirportConnectionModel conn in connectionsForRemoval)
+        {
+            AirportConnectionModel companionConnection = AirportConnections.Where(ac => ac.AirportID1 == conn.AirportID2 && ac.AirportID2 == conn.AirportID1).FirstOrDefault();
+            await JSRuntime.InvokeVoidAsync("unrenderLineInOverviewByCompanionAirportConnections", conn, companionConnection);
+        }
+        //render lines that need to be
+        foreach (AirportConnectionModel conn in connectionsForRendering)
+        {
+            AirportConnectionModel companionConnection = AirportConnections.Where(ac => ac.AirportID1 == conn.AirportID2 && ac.AirportID2 == conn.AirportID1).FirstOrDefault();
+            await JSRuntime.InvokeVoidAsync("renderLineInOverviewByCompanionAirportConnections", conn, companionConnection);
+        }
+        //concat remaining lists
+        SelectedAirportConnections = connectionsForRendering.Concat(alreadyRenderedConnections).ToList();
+
+        isMapLoading = false;
     }
 
+    private void OnAirportFilterClick(string ans) {
+        airportFilter = ans;
+    }
+
+    private async Task OnAirportConnectionFilterClick(string ans)
+    {
+        airportConnectionFilter = ans;   
+    }
+
+    #endregion
+
+    #region createAirport Connections
     public async Task CreateLargeAirportConnections()
     {
-        //get list of all airports
-        foreach(AirportModel port in LargeAirports){
+
+        foreach (AirportModel port in LargeAirports)
+        {
             List<AirportConnectionModel> immediateConnection = AirportConnections.Where(ac => ac.AirportID1 == port.AirportID).ToList();
-            foreach(AirportModel port2 in LargeAirports){
-                if(!immediateConnection.Any(ac => ac.AirportID2 == port2.AirportID) && port.AirportID != port2.AirportID){
+            foreach (AirportModel port2 in LargeAirports)
+            {
+                if (!immediateConnection.Any(ac => ac.AirportID2 == port2.AirportID) && port.AirportID != port2.AirportID)
+                {
                     await AirportConnectionTable.CreateAirportConnectionAsync(Int32.Parse(port.AirportID.ToString()), Int32.Parse(port2.AirportID.ToString()));
                 }
             }
@@ -94,17 +407,127 @@
             acm.Airport1 = Airports.FirstOrDefault(a1 => a1.AirportID == acm.AirportID1);
             acm.Airport2 = Airports.FirstOrDefault(a2 => a2.AirportID == acm.AirportID2);
         }
-        RenderAirportConnections();
         haveConnectionsBeenCreated = true;
+
     }
 
-    public async Task RenderAirportConnections(){
-        foreach(AirportConnectionModel conn in AirportConnections){
-            object data = await JSRuntime.InvokeAsync<AirportConnectionModel>("eval", conn);
-            await JSRuntime.InvokeVoidAsync("initAirportConnections", data);//TODO
+    #endregion
+
+    
+    #region JS interaction methods
+    public async Task initAllMapMarkersAndLines()
+    {
+        isMapLoading = true;
+        List<AirportModel> tempLargeAirports = LargeAirports.Intersect(SelectedAirports).ToList();
+        foreach (AirportModel port in tempLargeAirports)
+        {
+            object data = await JSRuntime.InvokeAsync<AirportModel>("eval", port);
+            await JSRuntime.InvokeVoidAsync("initOverviewLargeAirport", data);
         }
-        
+
+        List<AirportModel> tempMediumAirports = MediumAirports.Intersect(SelectedAirports).ToList();
+        foreach (AirportModel port in tempMediumAirports)
+        {
+            object data = await JSRuntime.InvokeAsync<AirportModel>("eval", port);
+            await JSRuntime.InvokeVoidAsync("initOverviewMediumAirport", data);
+        }
+
+        foreach (AirportConnectionModel acm in AirportConnections)
+        {
+            object data = await JSRuntime.InvokeAsync<AirportConnectionModel>("eval", acm);
+            await JSRuntime.InvokeVoidAsync("initAirportConnection", data);
+        }
+        isMapLoading = false;
     }
+
+    public async Task RenderSelectedAirportPins()
+    {
+        isMapLoading = true;
+        foreach (AirportModel model in SelectedAirports)
+        {
+            await JSRuntime.InvokeVoidAsync("renderMarkerInOverviewMapByID", model.AirportID);
+        }
+        StateHasChanged();
+        isMapLoading = false;
+    }
+
+    public async Task RenderSelectedAirportConnections()
+    {
+        isMapLoading = true;
+        foreach (AirportConnectionModel conn in SelectedAirportConnections)
+        {
+            await JSRuntime.InvokeVoidAsync("renderLineInOverviewByAirportIDs", conn.AirportID1, conn.AirportID2);
+        }
+        StateHasChanged();
+        isMapLoading = false;
+    }
+    #endregion
+
+    #region CSS methods
+
+    private string GetSelectedAirportFilter(string input)
+    {
+        if (airportFilter.Equals(input))
+        {
+            return "selectedAirportFilter";
+        }
+        else
+        {
+            return "nonSelectedAirportFilter";
+        }
+    }
+
+    private string GetSelectedAirportConnectionFilter(string input)
+    {
+        if (airportConnectionFilter.Equals(input))
+        {
+            return "selectedAirportFilter";
+        }
+        else
+        {
+            return "nonSelectedAirportFilter";
+        }
+    }
+
+    private string GetSelectedAirportConnectionFilter()
+    {
+        return "";
+    }
+
+    public string GetSelectedDropDownFilter(string category, string subcategory)
+    {
+        if(category == "Airport"){
+            if (airportFilter == subcategory){
+                return "visibleDiv";
+            }
+            return "invisibleDiv";
+        }else{
+            if (airportConnectionFilter == subcategory){
+                return "visibleDiv";
+            }
+            return "invisibleDiv";
+        }
+    }
+
+    public bool GetIsByGroupOptionEnabled(string section)
+    {
+        if (isAirportByStateChecked && section=="ByState"){
+            return false;
+        }else{
+            return true;
+        }
+
+        if (isAirportByStateChecked && section == "BySize")
+        {
+            return false;
+        }
+        else
+        {
+            return true;
+        }
+    }
+
+    #endregion
 
     [JSInvokable("updateSelectedAirport")]
     public static async Task UpdateSelectedAirport(string airportid){

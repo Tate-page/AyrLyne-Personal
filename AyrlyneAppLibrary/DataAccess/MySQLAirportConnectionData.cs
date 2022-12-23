@@ -40,6 +40,25 @@ namespace AyrlyneAppLibrary.DataAccess
                 new());
         }
 
+        public List<AirportConnectionModel> GetAllAirportConnectionsByAirportID(int id)
+        {
+            return (List<AirportConnectionModel>)_connection.Query<AirportConnectionModel>(
+                "Call GetAllAirportConnectionByAirportID1(@temp)",
+                new
+                {
+                    @temp = id
+                });
+        }
+
+        public async Task<List<AirportConnectionModel>> GetAllAirportConnectionsByAirportIDAsync(int id)
+        {
+            return (List<AirportConnectionModel>)await _connection.QueryAsync<AirportConnectionModel>(
+                "Call GetAllAirportConnectionByAirportID1(@temp)",
+                new
+                {
+                    @temp = id
+                });
+        }
         //create AirportConnection
         public async Task CreateAirportConnectionAsync(int temp1, int temp2)
         {
@@ -65,5 +84,7 @@ namespace AyrlyneAppLibrary.DataAccess
 
         //get all airport connections by AirportID1
         //get airportConnectionByID
+
+        
     }
 }

@@ -14,13 +14,15 @@ namespace AyrlyneAppLibrary.Models
 
         public string AirportType { get; set; }
 
-        public int AirportRegionID { get; set; }
+        public int AirportRegionID { get; set; }//state attribute
 
         public string AirportCode { get; set; }
 
         public string Longitude { get; set; }
 
         public string Latitude { get; set; }
+
+        public List<AirportConnectionModel> Connections { get; set; }
 
     }
 }

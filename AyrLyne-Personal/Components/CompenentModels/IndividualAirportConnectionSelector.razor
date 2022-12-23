@@ -1,0 +1,12 @@
+﻿@using AyrlyneAppLibrary.DataAccess;
+@using AyrlyneAppLibrary.Models;
+@inject AyrlyneAppLibrary.DataAccess.IAirportData AirportTable
+@inject AyrlyneAppLibrary.DataAccess.IAirportConnectionData AirportConnectionTable
+
+
+
+@code {
+    [Parameter]
+    public List<AirportConnectionModel> selectedAirportConnections { get; set; }
+
+}
