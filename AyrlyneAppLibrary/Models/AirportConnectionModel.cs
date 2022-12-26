@@ -17,5 +17,7 @@ namespace AyrlyneAppLibrary.Models
         public AirportModel Airport1 { get; set; }
 
         public AirportModel Airport2 { get; set; }
+
+        public int AirportConnectionCompanionID { get; set; }
     }
 }

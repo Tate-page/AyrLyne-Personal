@@ -22,7 +22,7 @@ namespace AyrlyneAppLibrary.Models
 
         public string Latitude { get; set; }
 
-        public List<AirportConnectionModel> Connections { get; set; }
+        public List<AirportConnectionModel>? Connections { get; set; }
 
     }
 }

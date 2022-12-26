@@ -103,7 +103,7 @@
             else
             {
 
-                filteredDropDrownModels = dropDownDataModels.Where(dddm => (dddm.attribute1.Contains(inputValue) || ((dddm.attribute2 == null) || (dddm.attribute2.Contains(inputValue)))) && !selectedDropDownModels.Contains(dddm)).ToList();
+                filteredDropDrownModels = dropDownDataModels.Where(dddm => (dddm.attribute1.ToLower().Contains(inputValue.ToLower()) || ((dddm.attribute2 == null) || (dddm.attribute2.ToLower().Contains(inputValue.ToLower())))) && !selectedDropDownModels.Contains(dddm)).ToList();
             }
         }        
     }

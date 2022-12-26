@@ -2,11 +2,217 @@
 @using AyrlyneAppLibrary.Models;
 @inject AyrlyneAppLibrary.DataAccess.IAirportData AirportTable
 @inject AyrlyneAppLibrary.DataAccess.IAirportConnectionData AirportConnectionTable
+<style>
+    .invisibleDropDownPrompt {
+        display: none;
+        overflow: hidden;
+        position: absolute;
+    }
+
+    .visibleDropDownPrompt {
+        display: block;
+        width: 200px;
+        max-height: 6rem;
+        overflow: hidden;
+        position: absolute;
+        background-color: white;
+        border-style: ridge;
+        overflow-y: auto
+    }
+</style>
+
+<!--Drop Down Options need to disappear once cursor moves away from input or dropdownlist-->
+<div style="display: flex;">
+    <div >
+        <input @bind="@inputValue1" runat="server" @onkeyup="@((e) => filterSearchForAirport1(e))" />
+        <div class="@GetPromptClassForInputValue1()">
+            @foreach (AirportModel airport in Airport1DropDownOptions)
+            {
+                <div class="DropDownOption" @onclick="(() => SelectAirport1(airport))" style="display: flex;">
+
+                    <p>@airport.AirportCode</p>
+                    <p> | </p>
+                    <p>@airport.AirportName</p>
 
 
+                </div>
+            }
+        </div>
+    </div>
+    <div >
+        <input @bind="@inputValue2" runat="server" @onkeyup="((e) => filterSearchForAirport2(e))" disabled ="@GetSecondAirportOptionClass()"/>
+        <div class="@GetPromptClassForInputValue2()">
+            @foreach (AirportModel airport in Airport2DropDownOptions)
+            {
+                <div class="DropDownOption" @onclick="(() => SelectAirport2(airport))">
+
+                    <p>@airport.AirportCode</p>
+                    <p> | </p>
+                    <p>@airport.AirportName</p>
+
+
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+
+<div class="divForAirportConnectionOnStage">
+    @if (acmOnStage.AirportConnectionID != 0){
+        <p>@acmOnStage.Airport1.AirportName</p>
+        <p> | </p>
+        <p>@acmOnStage.Airport2.AirportName</p>
+    }
+    <button @onclick="() => AddAirportConnection()" disabled="@IsACMOnStageSelected()">Add Airport Connection</button>
+</div>
+
+<div class="selectedItems">
+    @foreach (AirportConnectionModel acm in selectedAirportConnections)
+    {
+        <div class="selectedItem">
+            <p @onclick="(() => RemoveAirportConnection(acm))">x</p>
+            <p>@acm.Airport1.AirportCode | @acm.Airport2.AirportCode</p>
+
+        </div>
+    }
+</div>
 
 @code {
     [Parameter]
     public List<AirportConnectionModel> selectedAirportConnections { get; set; }
+
+    [Parameter]
+    public List<AirportModel> Airports { get; set; }
+
+    [Parameter]
+    public List<AirportConnectionModel> AirportConnections { get; set; }
+
+    private AirportModel selectedAirport1 = null;
+
+    private AirportModel selectedAirport2 = null;
+
+    private string inputValue1 = "";
+
+    private string inputValue2 = "";
+
+    private int mostRecentlySelectedOption = 0;
+
+    private List<AirportModel> Airport1DropDownOptions = new();
+
+    private List<AirportModel> Airport2DropDownOptions = new();
+
+    private AirportConnectionModel? acmOnStage = new();
+
+
+    public string GetPromptClassForInputValue1()
+    {
+        if (mostRecentlySelectedOption == 1){
+            if (inputValue1 == "" || inputValue1 == null)
+            {
+                return "invisibleDropDownPrompt";
+            }
+            return "visibleDropDownPrompt";
+        }
+        return "invisibleDropDownPrompt";
+    }
+
+    public string GetPromptClassForInputValue2(){
+        if (mostRecentlySelectedOption == 2)
+        {
+            if (inputValue2 == "" || inputValue2 == null)
+            {
+                return "invisibleDropDownPrompt";
+            }
+            return "visibleDropDownPrompt";
+        }
+        return "invisibleDropDownPrompt";
+    }
+
+    public void ChangeSelectedInput(int option){
+        mostRecentlySelectedOption = option;
+    }
+
+    public void filterSearchForAirport1(KeyboardEventArgs e)
+    {
+        mostRecentlySelectedOption = 1;
+        if (e.Code == "Enter" || e.Code == "NumpadEnter")
+        {
+            if (inputValue1 == "")
+            {
+                Airport1DropDownOptions = new();
+            }
+            else
+            {
+                Airport1DropDownOptions = Airports.Where(a => a.AirportName.ToLower().Contains(inputValue1.ToLower()) || a.AirportCode.ToLower().Contains(inputValue1.ToLower())).ToList();
+            }
+        }
+    }
+
+    public void filterSearchForAirport2(KeyboardEventArgs e)
+    {
+        mostRecentlySelectedOption = 2;
+        if (e.Code == "Enter" || e.Code == "NumpadEnter")
+        {
+            if (inputValue1 == "")
+            {
+                Airport2DropDownOptions = new();
+            }
+            else
+            {
+                Airport2DropDownOptions = Airports.Where(a => a.AirportName.ToLower().Contains(inputValue2.ToLower()) || a.AirportCode.ToLower().Contains(inputValue2.ToLower())).ToList();
+            }
+        }
+    }
+
+    public void SelectAirport1(AirportModel airport){
+        selectedAirport1 = airport;
+        selectedAirport2 = null;
+        inputValue2 = "";
+        List<AirportModel> tempAirports = new();
+        inputValue1 = airport.AirportName;
+        //this filtering is not working somehow, but I can choose airports that do not exist, but with this logic it should not happen
+        Airport2DropDownOptions = new();
+        foreach(AirportConnectionModel acm in airport.Connections){
+            Airport2DropDownOptions.Add(Airports.Where(a => a.AirportID == acm.AirportID2).FirstOrDefault());
+        }
+        mostRecentlySelectedOption = 0;
+    }
+
+    public void SelectAirport2(AirportModel airport){
+        selectedAirport2 = airport;
+        acmOnStage = AirportConnections.Where(acm => acm.AirportID1 == selectedAirport1.AirportID && acm.AirportID2 == selectedAirport2.AirportID).FirstOrDefault();
+        inputValue2 = airport.AirportName;
+        mostRecentlySelectedOption = 0;
+    }
+
+    public string GetSecondAirportOptionClass(){
+        if(selectedAirport1 == null){
+            return "disabled";
+        }else{
+            return null;
+        }
+    }
+
+    public string IsACMOnStageSelected(){
+        if(acmOnStage.AirportConnectionID == 0){
+            return "disabled";
+        }
+        return null;
+    }
+
+    public void AddAirportConnection(){
+        selectedAirportConnections.Add(acmOnStage);
+        acmOnStage = new();
+        inputValue1 = "";
+        inputValue2 = "";
+        selectedAirport1 = new();
+        selectedAirport2 = new();
+    }
+
+
+    public void RemoveAirportConnection(AirportConnectionModel acm){
+        selectedAirportConnections.Remove(acm);
+    }
 
 }

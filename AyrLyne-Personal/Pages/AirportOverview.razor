@@ -26,28 +26,29 @@
                 
                 <div class="@GetSelectedAirportFilter("ByGroup")" @onclick='(() => OnAirportFilterClick("ByGroup"))'>By Group</div>
                 <div class='@GetSelectedDropDownFilter("Airport", "ByGroup")'>
-                    <div style="display: flex;">
-                        <input type="checkbox" value="false" @bind="isAirportByStateChecked" />
+                    <div >
+                        <div style="display: flex;">
+                            <input type="checkbox" value="false" @bind="isAirportByStateChecked" />
+                            <p>By State</p>
+                        </div>
+                        
                         @if (isAirportByStateChecked)
                         {
                             <MultiOptionDropDownSearch dropDownDataModels="dddmStates" selectedDropDownModels="selectedddmStates" ></MultiOptionDropDownSearch>
                         }
-                        else
-                        {
-                            <p>By State</p>
-                        }
                     </div>
                     
-                    <div style="display: flex;">
-                        <input type="checkbox" value="false" @bind="isAirportBySizeChecked" style="display: flex;" />
+                    <div >
+                        <div style="display: flex;">
+                            <input type="checkbox" value="false" @bind="isAirportBySizeChecked" style="display: flex;" />
+                            <p>By Airport Size</p>
+                        </div>
+                        
                         @if (isAirportBySizeChecked)
                         {
                             <MultiOptionDropDownSearch dropDownDataModels="dddmAirportSizes" selectedDropDownModels="selectedddmAirportSizes" ></MultiOptionDropDownSearch>
                         }
-                        else
-                        {
-                            <p>By Airport Size</p>
-                        }
+                        
                     </div>
                 </div>
                     
@@ -58,11 +59,60 @@
             <div id="AirportOverviewToggleDiv">
                 <h5>Airport Connections</h5>
                 <div class="@GetSelectedAirportConnectionFilter("All")" @onclick='(() => OnAirportConnectionFilterClick("All"))'>All</div>
-                <div class="@GetSelectedAirportConnectionFilter("Individual")" @onclick='(() => OnAirportConnectionFilterClick("Individual"))'>Add Individual Airports</div>
+                <div class="@GetSelectedAirportConnectionFilter("Individual")" @onclick='(() => OnAirportConnectionFilterClick("Individual"))'>Add Individual Airport Connections</div>
                 <div class="@GetSelectedDropDownFilter("AirportConnection", "Individual")">
+                    <IndividualAirportConnectionSelector selectedAirportConnections="selectedddmIndividualAirportConnections" Airports="Airports" AirportConnections="AirportConnections"></IndividualAirportConnectionSelector>
                 </div>
                 <div class="@GetSelectedAirportConnectionFilter("ByGroup")" @onclick='(() => OnAirportConnectionFilterClick("ByGroup"))'>By Group</div>
-                <div class="@GetSelectedDropDownFilter("AirportConnection", "ByGroup")">
+                <div class="@GetSelectedDropDownFilter("AirportConnection", "ByGroup")" >
+                    <div style="display: flex;">
+                        <input type="checkbox" value="false" @bind="isAirportConnectionByStateChecked"  />
+                        <p>Connections that originate by State</p>
+                    </div>
+                    
+                    @if (isAirportConnectionByStateChecked)
+                    {
+                        <MultiOptionDropDownSearch dropDownDataModels="dddmStates" selectedDropDownModels="selectedStatesWhenFilteringAirportConnections"></MultiOptionDropDownSearch>
+                    }
+
+                    <div style="display: flex;">
+                        <input type="checkbox" value="false" @bind="isAirportConnectionByAirportChecked" />
+                        <p>Connections that originate by Airport</p>
+                    </div>
+                    @if(isAirportConnectionByAirportChecked){
+                        <MultiOptionDropDownSearch dropDownDataModels="dddmIndividualAirportFilter" selectedDropDownModels="selectedAirportsWhenFilteringAirportConnections"></MultiOptionDropDownSearch>
+                    }
+
+                    <div style="display: flex;">
+                        <input type="checkbox" value="false" @bind="isAirportConnectionsByXStateToYStateSelected" />
+                        <p>Connections Between State X and State Y</p>
+                    </div>
+                    
+                    @if (isAirportConnectionsByXStateToYStateSelected)
+                    {
+                        <p>you can search for flights within its state by selected that state twice</p>
+                        <p>For example: if I choose "CA" and "CA" it will only show airport connections between calidornia airports</p>
+                        <div style="display:flex;">
+                            <select @bind="stateID1">
+                                @foreach (StateModel state in States)
+                                {
+                                    <option value="@state.StateID">@state.StateAbrev</option>
+                                }
+                                
+                            </select>
+
+                            <select @bind="stateID2">
+                                @foreach (StateModel state in States)
+                                {
+                                    <option value="@state.StateID">@state.StateAbrev</option>
+                                }
+
+                            </select>
+                        </div>
+                        
+                    }
+                    
+                        
                 </div>
                 <div class="@GetSelectedAirportConnectionFilter("None")" @onclick='(() => OnAirportConnectionFilterClick("None"))'>None</div>
                 <button type="button" @onclick="(() => ApplyAirportConnectionFilters())">Apply Filter(s)</button>
@@ -79,6 +129,13 @@
     {
         <button @onclick="(() => CreateLargeAirportConnections())">Create Connections</button>
     }
+    <div>
+        
+        
+        <input type="radio" name="selectorOption "value="Airport" @bind="selectedSelectorOption"/>
+        
+        
+    </div>
     <div class="AirportOverviewSelectedItemsDiv">
         <div class="SelectedAirportDiv"></div>
         <div class="SelectedAirportConnection"></div>
@@ -116,7 +173,24 @@
     private List<DropDownDataModel> dddmAirportSizes = new();
     private List<DropDownDataModel> selectedddmAirportSizes = new();
 
-    private List<DropDownDataModel> selectedddmAirportsForAirportConnections = new();
+    private List<AirportConnectionModel> selectedddmIndividualAirportConnections = new();
+
+    //this list will be filled with airport connections and will not contain any companion connections
+    //the selectedAirportConnections will come from the IDs that are in this table
+    //this is so that we do not have to check on the JS side if a connection is rendered twice
+    private List<int> AirportConnectionIDsThatCanBeRendered = new();
+
+    private bool isAirportConnectionByStateChecked;
+    private List<DropDownDataModel> selectedStatesWhenFilteringAirportConnections = new();
+
+    private bool isAirportConnectionByAirportChecked;
+    private List<DropDownDataModel> selectedAirportsWhenFilteringAirportConnections = new();
+
+    private bool isAirportConnectionsByXStateToYStateSelected;
+    private int stateID1;
+    private int stateID2;
+
+    private string? selectedSelectorOption;
 
 
 
@@ -185,13 +259,30 @@
             }
         }
 
+        //Each connection has a companion id that might be able to be generated fromo an sql query
+        //the below function gets the companion connections
+        foreach(AirportConnectionModel acm in AirportConnections){
+            AirportConnectionModel acmTemp = AirportConnections.Where(ac => ac.AirportID1 == acm.AirportID2 && ac.AirportID2 == acm.AirportID1).FirstOrDefault();
+            if(acmTemp is not null){
+                acm.AirportConnectionCompanionID = acmTemp.AirportConnectionID;
+                if (!AirportConnectionIDsThatCanBeRendered.Exists(id => id == acmTemp.AirportConnectionID)){//if companion connection DNE then add to renderable connectionIDs
+                    AirportConnectionIDsThatCanBeRendered.Add(acm.AirportConnectionID);
+                }
+            }else{
+                //THIS SHOULD NEVER BE HIT, IF IT IS IT IS A PROBLEM
+                //if companion connection does not exist
+                //AirportConnectionIDsThatCanBeRendered.Add(acm.AirportConnectionID);
+            }
+
+        }
+
         if (airportConnectionFilter == "All")
         {
-            SelectedAirportConnections = AirportConnections;
+            await ApplyAirportConnectionFilters();
         }
         else if (airportConnectionFilter == "None")
         {
-            SelectedAirportConnections = new();
+            await ApplyAirportFilters();
         }
         string temp = typeof(AirportOverview).Assembly.GetName().FullName;
     }
@@ -323,37 +414,90 @@
     }
 
     public async Task ApplyAirportConnectionFilters(){
+        //AirportConnectionIDsThatCanBeRendered
+        //the above is the name of a list of ints that contain IDs that can be rendered and that can be added selectedAirportConnections
+        //adding to the rendered connections will be inclusive
+        //if the qualification for one of each companion set is met then it will be rendered, check if it exists before adding
         isMapLoading = true;
+        List<AirportConnectionModel> qualifiedAirportConnections = null;
+
+        if (airportConnectionFilter == "All")
+        {
+            qualifiedAirportConnections = AirportConnections;
+        }
+        else if (airportConnectionFilter == "ByGroup")
+        {
+            qualifiedAirportConnections = new();
+            if (isAirportConnectionByStateChecked){
+                foreach(AirportConnectionModel acm in AirportConnections){
+                    if (selectedStatesWhenFilteringAirportConnections.Exists(dddm => dddm.id == acm.Airport1.AirportRegionID)){
+                        qualifiedAirportConnections.Add(acm);
+                    }
+                }
+            }
+
+            if (isAirportConnectionByAirportChecked){
+                foreach(AirportConnectionModel acm in AirportConnections){
+                    if (selectedAirportsWhenFilteringAirportConnections.Exists(dddm => dddm.id == acm.AirportID1) && !qualifiedAirportConnections.Exists(ac => ac.AirportConnectionID == acm.AirportConnectionID))
+                    {
+                        qualifiedAirportConnections.Add(acm);
+                    }
+                }
+            }
+
+            if(isAirportConnectionsByXStateToYStateSelected){
+                foreach(AirportConnectionModel acm in AirportConnections){
+                    if (acm.Airport1.AirportRegionID == stateID1 && acm.Airport2.AirportRegionID == stateID2 && !qualifiedAirportConnections.Exists(ac => ac.AirportConnectionID == acm.AirportConnectionID))
+                    {
+                        qualifiedAirportConnections.Add(acm);
+                    }
+                }
+            }
+            
+        }
+        else if (airportConnectionFilter == "Individual")
+        {
+            qualifiedAirportConnections = selectedddmIndividualAirportConnections;
+        }
+        else if (airportConnectionFilter == "None")
+        {
+            qualifiedAirportConnections = new();
+        }
+
+
+        List<AirportConnectionModel> renderableConnections = new();
+        foreach(AirportConnectionModel acm in qualifiedAirportConnections){
+            if (!AirportConnectionIDsThatCanBeRendered.Exists(id => id == acm.AirportConnectionID)){
+                AirportConnectionModel tempor = AirportConnections.Where(ac => ac.AirportConnectionID == acm.AirportConnectionCompanionID).FirstOrDefault();
+                if (!renderableConnections.Exists(ac => ac.AirportConnectionID == tempor.AirportConnectionID))
+                {
+                    renderableConnections.Add(tempor);
+                }//else companion connection already met qualifications
+            }else{
+                if (!renderableConnections.Exists(ac => ac.AirportConnectionID == acm.AirportConnectionID))
+                {
+                    renderableConnections.Add(acm);
+                }//else companion connection already met qualifications
+            }
+        }
+
 
         List<AirportConnectionModel> connectionsForRemoval = new();
         List<AirportConnectionModel> connectionsForRendering = new();
         List<AirportConnectionModel> alreadyRenderedConnections = new();
-        if (airportConnectionFilter == "All")
-        {
-            foreach (AirportConnectionModel conn in AirportConnections)
-            {
-                if (SelectedAirportConnections.Exists(ap => ap.AirportConnectionID == conn.AirportConnectionID))
-                {
-                    alreadyRenderedConnections.Add(conn);
-                }
-                else
-                {
-                    connectionsForRendering.Add(conn);
-                }
+        foreach(AirportConnectionModel acm in renderableConnections){
+            if(SelectedAirportConnections.Exists(ac => ac.AirportConnectionID == acm.AirportConnectionID)){
+                alreadyRenderedConnections.Add(acm);
+            }else{
+                connectionsForRendering.Add(acm);
+
             }
         }
-        else if (airportConnectionFilter == "ByGroup")
-        {
-
-        }
-        else if (airportConnectionFilter == "Individual")
-        {
-            
-            
-        }
-        else if (airportConnectionFilter == "None")
-        {
-            connectionsForRemoval = SelectedAirportConnections;
+        List<AirportConnectionModel> temp = connectionsForRendering.Concat(alreadyRenderedConnections).ToList();
+        foreach(AirportConnectionModel acm in SelectedAirportConnections){
+            if(!temp.Exists(ac => ac.AirportConnectionID == acm.AirportConnectionID)){
+                connectionsForRemoval.Add(acm);
+            }
         }
 
     
