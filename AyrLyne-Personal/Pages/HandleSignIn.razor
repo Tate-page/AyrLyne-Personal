@@ -3,7 +3,8 @@
 @using AyrLyne_Personal.Models;
 @inject ISignInUser signedUser;
 
-
+@using AyrLyne_Personal.Components;
+@using AyrLyne_Personal.Components.CompenentModels;
 @using AyrlyneAppLibrary.Models;
 
 @using AyrlyneAppLibrary.DataAccess;
@@ -24,38 +25,27 @@
 }else{
     <p>It seems that this is your first time logging in, please fill out this form to finalize you login</p>
     <EditForm Model="@signInUserModel" OnValidSubmit="@HandleSubmit">
-        <DataAnnotationsValidator />
-        <ValidationSummary />
 
         <p>First Name:</p>
-        <InputText id="Fname" CurrentValue="@Fname" @bind-Value="signInUserModel.Fname"></InputText>
+        <InputText id="Fname" @bind-Value="signInUserModel.Fname"></InputText>
 
         <p>Last Name:</p>
-        <InputText id="Lname" CurrentValue="@Lname" @bind-Value="signInUserModel.Lname"></InputText>
+        <InputText id="Lname" @bind-Value="signInUserModel.Lname"></InputText>
 
         <p>Home Airport:</p>
-        <select id="stateSelect" @onchange="@OnStateSelect">
-            <option value="0" selected>Choose State</option>
-            @foreach(StateModel state in stateData.GetStates() ){
-                <option value="@state.StateID">@state.StateAbrev</option>
-            }
-        </select>
-        <select name="regionSelect" id="regionSelect" @onchange="@OnRegionSelect" disabled="@isRegionDisabled">
-            <option value="0" selected>Choose Region</option>
-            @foreach (RegionModel region in regionData.GetRegions().Where(r => r.RegionStateID == stateValue))
-            {
-                <option value="@region.RegionID">@region.RegionName</option>
-            }
-        </select>
-        <InputSelect name="AirportSelect" id="AirportSelect" @bind-Value="signInUserModel.HomeAirportID" disabled="@isAirportDisabled">
-            <option value="0" selected>Choose Airport</option>
-            @foreach(AirportModel airport in airportData.GetAirports().Where(a => a.AirportRegionID == regionValue)){
-                <option value="@airport.AirportID">@airport.AirportName</option>
+        <InputSelect class="homeAirportSelect" @bind-Value="signInUserModel.HomeAirportID">
+            @if(Airports is not null){
+                <option value="" selected>None</option>
+                @foreach(AirportModel port in Airports){
+                    <option value="@port.AirportID">@port.AirportName (iata: @port.AirportCode)</option>
+                }
             }
         </InputSelect>
+        
+        <!--<SingleOptionDropDownSearch dropDownDataModel="dddmAirports" selectedDropDownModel="signInUserModel.HomeAirport"></SingleOptionDropDownSearch>-->
 
 
-        <button type="submit">Sign In</button>
+        <button type="submit" @onclick="() => HandleSubmit()" >Sign In</button>
     </EditForm>
 }
 
@@ -70,14 +60,29 @@
     private string Fname="";
     private string Lname = "";
 
+    private List<AirportModel> Airports = null;
+    private List<DropDownDataModel> dddmAirports = new();
+
+
+
     protected override async Task OnInitializedAsync()
     {
+        Airports = await airportData.GetAirportsAsync();
+        foreach(AirportModel port in Airports){
+            DropDownDataModel dddm = new DropDownDataModel{
+                id = port.AirportID,
+                attribute1 = port.AirportName,
+                attribute2 = port.AirportCode
+            };
+            dddmAirports.Add(dddm);
+        }
+
         if (!signedUser.isLoggedIn)
         {//signedUser has not been updated to claims
             var principal = await _authenticationStateProvider.GetAuthenticationStateAsync();
 
             //List<AirportModel> tempList =await airportData.GetAirportsAsync();
-            //tempList = tempList.Where(a => a.AirportRegionID == 59).ToList();
+            //tempList = tempList.Where(a => a.AirportStateID == 59).ToList();
 
 
             string tempName = _context.HttpContext.User.Claims.First(c => c.Type.Contains("name")).Value.ToString();
@@ -95,16 +100,19 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        var temp = await userData.returnIfUserExistsAsync(tempUser.Email);
-        if(temp.Email == null){
+        bool temp = await userData.doesUserExistByEmailAsync(tempUser.Email);
+
+        if(!temp){
+
             doesUserExistInDB = false;
         }else{
             doesUserExistInDB = true;
+            var temporaryUser = await userData.returnIfUserExistsAsync(tempUser.Email);
             SignInUser temporary = new SignInUser();
-            temporary.Fname = temp.Fname;
-            temporary.Lname = temp.Lname;
-            temporary.UserID = temp.UserID;
-            temporary.isAdmin = temp.isAdmin;
+            temporary.Fname = temporaryUser.Fname;
+            temporary.Lname = temporaryUser.Lname;
+            temporary.UserID = temporaryUser.UserID;
+            temporary.isAdmin = temporaryUser.isAdmin;
             signedUser.signIn(temporary);
         }
         Fname = tempUser.Fname;
@@ -138,13 +146,15 @@
         return "disabled";
     }
 
-    private void HandleSubmit(){
+    private async Task HandleSubmit()
+    {
+
         string tempName = _context.HttpContext.User.Claims.First(c => c.Type.Contains("name")).Value.ToString();
         UserModel user = new();
-        user.Fname = tempName.Split(" ")[0];
-        user.Lname = tempName.Split(" ")[1];
+        user.Fname = signInUserModel.Fname;
+        user.Lname = signInUserModel.Lname;
         user.Email = _context.HttpContext.User.Claims.First(c => c.Type.Contains("email")).Value.ToString();
-        user.HomeAirportID = Int32.Parse( signInUserModel.HomeAirportID);
+        user.HomeAirportID =  signInUserModel.HomeAirportID;
         //update DB
         UserModel model = userData.updateDB(user);
         tempUser.UserID = model.UserID;

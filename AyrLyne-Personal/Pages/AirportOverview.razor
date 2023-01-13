@@ -8,6 +8,7 @@
 @using AyrLyne_Personal.Models
 @using AyrLyne_Personal.Components
 @using AyrLyne_Personal.Components.CompenentModels
+@using Microsoft.AspNetCore.Mvc
 
 <h3>AirportOverview</h3>
 <div>
@@ -129,22 +130,19 @@
     {
         <button @onclick="(() => CreateLargeAirportConnections())">Create Connections</button>
     }
-    <div>
-        
-        
-        <input type="radio" name="selectorOption "value="Airport" @bind="selectedSelectorOption"/>
-        
-        
-    </div>
-    <div class="AirportOverviewSelectedItemsDiv">
-        <div class="SelectedAirportDiv"></div>
-        <div class="SelectedAirportConnection"></div>
-        <div class="SelectedAirportDiv"></div>
-    </div>
+ 
+       <div class="SelectedAirportDiv">
+            @if (selectedAirport.AirportID != 0){
+                <h5>@selectedAirport.AirportName</h5>
+                <p>@selectedAirport.AirportID | @selectedAirport.AirportCode</p>
+                <p>@selectedAirport.AirportType</p>
+                <p>State: @States.Where(state => state.StateID == selectedAirport.AirportStateID)?.FirstOrDefault().StateAbrev</p>
+                <button @onclick="() => DeleteAirport()">Delete Airport</button>
+            }
+       </div>
+    
 </div>
 
-
-<!---->
 
 @code {
     private List<AirportModel> Airports = new();
@@ -190,18 +188,15 @@
     private int stateID1;
     private int stateID2;
 
-    private string? selectedSelectorOption;
-
-
-
-
-
-    //[Parameter]
-    //public EventCallback<List<DropDownDataModel>> AirportIndividualfilterSearch { get; set; }
+    private AirportModel selectedAirport = new();
+    private string selectedAirportID = "";
+    private static Func<string, Task> ChangeSelectedAirportID;
 
 
     #region overrides
     protected override async Task OnInitializedAsync(){
+        ChangeSelectedAirportID = LocalSelectAirport;
+
         //ADD states dddm and AirportSize dddm
         States = await StateTable.GetStatesAsync();
         foreach(StateModel state in States){
@@ -285,16 +280,16 @@
             await ApplyAirportFilters();
         }
         string temp = typeof(AirportOverview).Assembly.GetName().FullName;
+
+
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            //input 1 array of nodes
-            //nodes contain lat long
-            //color to show if it is large or medium
-            //input 1 array of edges
+            //needs to pass parameters correctly
+            //await JSRuntime.InvokeVoidAsync("editSelectedAirport");
 
 
             await JSRuntime.InvokeVoidAsync("initOverviewMap", null);
@@ -308,6 +303,18 @@
 
     }
 
+    #endregion
+
+
+
+    #region delete
+    public void DeleteAirport(){
+
+    }
+
+    public void DeleteAirportConnection(){
+
+    }
     #endregion
 
     #region filters
@@ -333,8 +340,8 @@
                 bool IsAirportByStateCheckedIsCheckedAndInSelectedStatesOrNotSelected = false;
                 bool IsAirportBySizeCheckedIsCheckedAndInSelectedStatesOrNotSelected = false;
 
-                //AirportRegionID needs to be updated in db
-                if (isAirportByStateChecked && selectedddmStates.Exists(ap => ap.id == port.AirportRegionID))
+                //AirportStateID needs to be updated in db
+                if (isAirportByStateChecked && selectedddmStates.Exists(ap => ap.id == port.AirportStateID))
                 {
                     IsAirportByStateCheckedIsCheckedAndInSelectedStatesOrNotSelected = true;
                 }else if(!isAirportByStateChecked){
@@ -430,7 +437,7 @@
             qualifiedAirportConnections = new();
             if (isAirportConnectionByStateChecked){
                 foreach(AirportConnectionModel acm in AirportConnections){
-                    if (selectedStatesWhenFilteringAirportConnections.Exists(dddm => dddm.id == acm.Airport1.AirportRegionID)){
+                    if (selectedStatesWhenFilteringAirportConnections.Exists(dddm => dddm.id == acm.Airport1.AirportStateID)){
                         qualifiedAirportConnections.Add(acm);
                     }
                 }
@@ -447,13 +454,13 @@
 
             if(isAirportConnectionsByXStateToYStateSelected){
                 foreach(AirportConnectionModel acm in AirportConnections){
-                    if (acm.Airport1.AirportRegionID == stateID1 && acm.Airport2.AirportRegionID == stateID2 && !qualifiedAirportConnections.Exists(ac => ac.AirportConnectionID == acm.AirportConnectionID))
+                    if (acm.Airport1.AirportStateID == stateID1 && acm.Airport2.AirportStateID == stateID2 && !qualifiedAirportConnections.Exists(ac => ac.AirportConnectionID == acm.AirportConnectionID))
                     {
                         qualifiedAirportConnections.Add(acm);
                     }
                 }
             }
-            
+
         }
         else if (airportConnectionFilter == "Individual")
         {
@@ -500,7 +507,7 @@
             }
         }
 
-    
+
         //remove lines
         foreach (AirportConnectionModel conn in connectionsForRemoval)
         {
@@ -557,7 +564,7 @@
 
     #endregion
 
-    
+
     #region JS interaction methods
     public async Task initAllMapMarkersAndLines()
     {
@@ -578,8 +585,10 @@
 
         foreach (AirportConnectionModel acm in AirportConnections)
         {
-            object data = await JSRuntime.InvokeAsync<AirportConnectionModel>("eval", acm);
-            await JSRuntime.InvokeVoidAsync("initAirportConnection", data);
+            if (AirportConnectionIDsThatCanBeRendered.Exists( id => id == acm.AirportConnectionID)){
+                object data = await JSRuntime.InvokeAsync<AirportConnectionModel>("eval", acm);
+                await JSRuntime.InvokeVoidAsync("initAirportConnection", data);
+            }
         }
         isMapLoading = false;
     }
@@ -605,9 +614,10 @@
         StateHasChanged();
         isMapLoading = false;
     }
+
     #endregion
 
-    #region CSS methods
+    #region CSS methods and methods that only change values
 
     private string GetSelectedAirportFilter(string input)
     {
@@ -670,11 +680,19 @@
             return true;
         }
     }
-
     #endregion
 
-    [JSInvokable("updateSelectedAirport")]
-    public static async Task UpdateSelectedAirport(string airportid){
-        Console.WriteLine(airportid);
+    //might need to add static?????
+    [JSInvokable]
+    public static async Task selectAirport(string id){//update selected airport or airport connection
+        await ChangeSelectedAirportID.Invoke(id);
+    }
+
+
+    public async Task LocalSelectAirport(string id){
+        selectedAirport = Airports.Where(a => a.AirportID == Int32.Parse(id)).FirstOrDefault();
+        StateHasChanged();
+
+        
     }
 }

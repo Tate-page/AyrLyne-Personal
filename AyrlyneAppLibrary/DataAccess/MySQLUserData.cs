@@ -3,6 +3,7 @@ using Dapper;
 using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -15,6 +16,32 @@ namespace AyrlyneAppLibrary.DataAccess
         public MySQLUserData(IDbConnection conn)
         {
             _connection = conn.connection;
+        }
+
+        public async Task<bool> doesUserExistByEmailAsync(string email)
+        {
+            var temp = await _connection.QueryAsync<int>("SELECT doesUserExist(@tempEmail)", new { tempEmail = email }, commandType: System.Data.CommandType.Text);
+            if (temp.First() == 0)
+            {
+                return false;
+            }
+            else
+            {
+                return true;
+            }
+        }
+
+        public bool doesUSerExistByEmail(string email)
+        {
+            var temp = _connection.Query<int>("SELECT doesUserExist(@tempEmail)", new { tempEmail = email }, commandType: System.Data.CommandType.Text);
+            if (temp.First() == 0)
+            {
+                return false;
+            }
+            else
+            {
+                return true;
+            }
         }
 
         public async Task<UserModel> returnIfUserExistsAsync(string email)
@@ -109,5 +136,37 @@ namespace AyrlyneAppLibrary.DataAccess
                 return tempUser;
             }
         }
+
+        public async Task<UserModel> createAndReturnUserAsync(string Fname, string Lname, string Email, int AirportID)
+        {
+            var temp = await _connection.QueryAsync<UserModel>(
+                    "Call ReturnUserIfEmailExists(@tempEmail)",
+                    new
+                    {
+                        @tempFname = Fname,
+                        @tempLname = Lname,
+                        @tempEmail = Email,
+                        @tempHomeAirportID = AirportID,
+                        @tempIsAdmin = false
+                    });
+            return (UserModel) temp;
+        }
+
+        public UserModel createAndReturnUser(string Fname, string Lname, string Email, int AirportID)
+        {
+            var temp = _connection.Query<UserModel>(
+                    "Call ReturnUserIfEmailExists(@tempEmail)",
+                    new
+                    {
+                        @tempFname = Fname,
+                        @tempLname = Lname,
+                        @tempEmail = Email,
+                        @tempHomeAirportID = AirportID,
+                        @tempIsAdmin = false
+                    });
+            return (UserModel)temp;
+        }
     }
+
+    
 }

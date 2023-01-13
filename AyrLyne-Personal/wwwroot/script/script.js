@@ -1,6 +1,9 @@
 ﻿let OverviewMap;
 let PinArray = [];
+let LargePinArray = [];
+let MediumPinArray = [];
 let polyLineArray = [];
+
 function initOverviewMap() {
     //all paths are being displayed twice
     var latlng = new google.maps.LatLng(52.183360, -105.654249);
@@ -24,7 +27,8 @@ function initOverviewLargeAirport(airport) {
             url: '/Images/largeAirport.png'
         },
     });
-    marker.addListener('click', (e) => { editSelectedAirport(marker.title) });
+    marker.addListener('click', (e) => { selectMarker(marker) });
+    LargePinArray.push(marker);
     PinArray.push(marker);
 }
 
@@ -42,7 +46,8 @@ function initOverviewMediumAirport(airport) {
             url: '/Images/mediumAirport.png'
         },
     });
-    marker.addListener('click', (e) => { editSelectedAirport(marker.title) });
+    marker.addListener('click', (e) => { selectMarker(marker) });
+    MediumPinArray.push(marker);
     PinArray.push(marker);
 }
 
@@ -65,7 +70,7 @@ function initAirportConnection(connection) {
         const flightPath = new google.maps.Polyline({
             path: flightPlanCoordinates,
             geodesic: true,
-            strokeColor: "#FF0000",
+            strokeColor: "#FFFFFF",
             strokeOpacity: 1.0,
             strokeWeight: 2,
             title: connection.airportConnectionID.toString(),
@@ -113,10 +118,53 @@ function unrenderLineInOverviewByCompanionAirportConnections(conn, companionConn
     temp[0].setMap(null);
 }
 
+let selectedAirport;
 
+/*airport*/
+function selectMarker(airport) {
+    //reset previous marker
 
-function editSelectedAirport(airport) {
     
-    DotNet.invokeMethodAsync("AyrLyne-Personal", 'updateSelectedAirport', airport)
+    if (selectedAirport != null) {
+        let temp = LargePinArray.filter(m => m.title == airport.title);
+        if (temp == null) {//it is a medium airport
+            selectedAirport.setIcon({
+                size: new google.maps.Size(20, 25),
+                scaledSize: new google.maps.Size(20, 25),
+                url: '/Images/mediumAirport.png'
+            });
+        } else {
+            selectedAirport.setIcon({
+                size: new google.maps.Size(20, 25),
+                scaledSize: new google.maps.Size(20, 25),
+                url: '/Images/largeAirport.png'
+            });
+        }
+    }
+    
+
+    //update new marker
+    airport.setIcon({
+        size: new google.maps.Size(20, 25),
+        scaledSize: new google.maps.Size(20, 25),
+        url: '/Images/selectedAirport.png'
+    });
+    
+    selectedAirport = airport;
+
+    
+    DotNet.invokeMethodAsync("AyrLyne-Personal", 'selectAirport', airport.title)
+}
+
+let selectedAirportForAirportConnection = "Airport1";
+function updateSelectedAirportForAirportConnectionOption(opt) {
+    selectedAirportForAirportConnection = opt;
+}
+
+let wasAirportConnectionRenderedBeforeSelection;
+function selectLineFromServer(id, boo) {
+    selectedAirportConnection = polyLineArray.filter(ac => ac.title == id);
+    selectedAirportConnection.setOptions({ strokeColor: "#FF0000" });
+    wasAirportConnectionRenderedBeforeSelection = boo;
 }
 

@@ -97,3 +97,15 @@ a, .btn-link {
 .invisibleDiv{
     display: none;
 }
+
+.SelectedAirportDiv{
+    border: dashed 1px;
+}
+
+.SelectedSelectedAirprotDiv{
+    border: solid 1px;
+}
+
+.SelectedAirportConnectionGroupDiv{
+    display: flex;
+}

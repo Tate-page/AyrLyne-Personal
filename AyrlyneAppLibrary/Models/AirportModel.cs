@@ -14,7 +14,7 @@ namespace AyrlyneAppLibrary.Models
 
         public string AirportType { get; set; }
 
-        public int AirportRegionID { get; set; }//state attribute
+        public int AirportStateID { get; set; }//state attribute
 
         public string AirportCode { get; set; }
 
